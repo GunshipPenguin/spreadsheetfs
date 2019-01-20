@@ -44,6 +44,9 @@ def ss_get_cell(col, row):
         return ''
 
 def ss_write_cell(col, row, data):
+    logfile.write(pprint.pformat(data))
+    logfile.write('\n')
+    logfile.flush()
     range = "%s!%s%d" % (sheet, col, row)
 
     value_range_body = {
@@ -112,7 +115,7 @@ class SpreadsheetFS(fuse.Fuse):
         file_contents = file_contents[:length]
 
         encoded_file_contents = base64.b64encode(file_contents)
-        encoded_file_contents = encoded_file_contents.decode() # Convert bytes to str
+        encoded_file_contents = encoded_file_contents.decode(encoding="ascii") # Convert bytes to str
         ss_write_cell("A", target.row, encoded_file_contents)
 
     def getattr(self, path):
@@ -125,14 +128,13 @@ class SpreadsheetFS(fuse.Fuse):
         else:
             st.st_mode = stat.S_IFREG | 0o444
             st.st_nlink = 1
-            st.st_size = 100
+            st.st_size = 2000
         # else:
         #     return -errno.ENOENT
 
         return st
 
     def readdir(self, path, offset):
-        logfile.flush()
         for item in top_level_dir.contents:
             yield fuse.Direntry(item.name)
 
@@ -162,7 +164,7 @@ class SpreadsheetFS(fuse.Fuse):
         # logfile.write(str(offset))
         # logfile.write('\n')
         # logfile.flush()
-        return "".join(map(chr, file_contents[offset:offset+size]))
+        return file_contents[offset:offset+size]
 
     def unlink(self, path):
         self.delete_file(path)
@@ -190,9 +192,8 @@ class SpreadsheetFS(fuse.Fuse):
         # Get / unpack file contents
         curr_file_contents = self.read_file_contents(path)
 
-        new_file_contents = curr_file_contents[:offset] + bytes(buf, encoding='ascii') + curr_file_contents[offset+len(buf):]
+        new_file_contents = curr_file_contents[:offset] + buf + curr_file_contents[offset+len(buf):]
         new_file_contents = base64.b64encode(new_file_contents)
-        new_file_contents = new_file_contents.decode() # Convert bytes to str
 
         ss_write_cell("A", target.row, new_file_contents)
 
@@ -222,6 +223,7 @@ def init_fs_data():
     # File names are contained on the B column
     file_name_data = ss_get_col("B", 1, tot_num_files)
     for (row_num, file_name) in enumerate(file_name_data, start=1):
+        file_name = str(file_name) # File names should be ASCII so syscalls don't choke
         if len(file_name) > 0:
             top_level_dir.contents.append(File(file_name, row_num))
 
