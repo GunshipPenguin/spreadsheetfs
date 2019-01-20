@@ -179,7 +179,13 @@ class SpreadsheetFS(fuse.Fuse):
         top_level_dir.contents.append(File(os.path.basename(path), tot_num_files))
 
     def delete_file(self, path):
-        pass  # TODO Add API calls to delete ss file
+        target = top_level_dir.get_item_at_path(path)
+
+        if target is None:
+            return
+
+        ss_write_cell("B", target.row, '')
+        top_level_dir.contents.remove(target)
 
     def read_file_contents(self, path):
         target = top_level_dir.get_item_at_path(path)
