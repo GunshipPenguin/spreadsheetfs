@@ -223,13 +223,13 @@ def init_fs_data():
     """
     global tot_num_files
     # Get total number of files (C3)
-    tot_num_files = int(ss_get_cell("D", 1))
+    tot_num_files = ss_get_cell("D", 1)
 
-    if tot_num_files == 0:
+    if tot_num_files == "":
         return
 
     # File names are contained on the B column
-    file_name_data = ss_get_col("B", 1, tot_num_files)
+    file_name_data = ss_get_col("B", 1, int(tot_num_files))
     for (row_num, file_name) in enumerate(file_name_data, start=1):
         file_name = str(file_name)  # File names should be ASCII so syscalls don"t choke
         if len(file_name) > 0:
